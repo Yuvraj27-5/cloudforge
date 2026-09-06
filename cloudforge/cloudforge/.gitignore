@@ -1,0 +1,29 @@
+# --- Secrets (never commit) ---
+.env
+.env.local
+*.pem
+*.key
+kubeconfig*
+
+# --- Java / Spring ---
+backend/target/
+*.class
+*.log
+
+# --- Node ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# --- Python ---
+ml-service/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+ml-service/models/*.joblib
+
+# --- IDE / OS ---
+.idea/
+*.iml
+Thumbs.db

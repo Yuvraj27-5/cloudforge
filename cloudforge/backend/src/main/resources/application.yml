@@ -1,0 +1,44 @@
+spring:
+  application:
+    name: cloudforge-backend
+
+  datasource:
+    url: ${CLOUDFORGE_DB_URL:jdbc:postgresql://localhost:5432/cloudforge}
+    username: ${CLOUDFORGE_DB_USER:cloudforge}
+    password: ${CLOUDFORGE_DB_PASSWORD:local_dev_only_change_me}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate      # schema is owned by Flyway, never by Hibernate
+    open-in-view: false       # keeps lazy loading out of the web layer
+    properties:
+      hibernate.format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+  error:
+    include-message: never    # never leak internals in error responses
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always    # LOCAL ONLY - restrict once Spring Security lands
+
+info:
+  app:
+    name: CloudForge Backend
+    phase: "0"
+
+logging:
+  level:
+    com.cloudforge.backend: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%X{correlationId:-}] %logger{36} - %msg%n"
