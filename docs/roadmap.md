@@ -7,7 +7,7 @@ criterion.
 | Phase | Deliverable | Exit criterion | Touches |
 |---|---|---|---|
 | 0 | Repository, local environment | Three services start; backend reaches Postgres; frontend reaches backend | root, all modules |
-| 1 | Project CRUD end to end | Create a project in the UI, see the row in Postgres | `backend/project`, `frontend/pages`, migrations |
+| 1 ✅ | Project CRUD end to end | Create a project in the UI, see the row in Postgres | `backend/project`, `frontend/pages`, migrations |
 | 2 | Deployment records | Full deployment lifecycle representable before any real deploy exists | `backend/deployment`, `frontend/pages` |
 | 3 | Sample application | Runs locally; healthy and unhealthy variants both behave | `sample-app` |
 | 4 | Basic CI | Every push builds and tests automatically | `.github/workflows` |

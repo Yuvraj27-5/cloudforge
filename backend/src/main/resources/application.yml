@@ -8,10 +8,9 @@ spring:
     password: ${CLOUDFORGE_DB_PASSWORD:local_dev_only_change_me}
 
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
-    open-in-view: false
+      ddl-auto: validate      # schema is owned by Flyway, never by Hibernate
+    open-in-view: false       # keeps lazy loading out of the web layer
     properties:
       hibernate.format_sql: true
 
@@ -22,7 +21,7 @@ spring:
 server:
   port: 8080
   error:
-    include-message: never
+    include-message: never    # never leak internals in error responses
 
 management:
   endpoints:
@@ -31,7 +30,7 @@ management:
         include: health,info,metrics
   endpoint:
     health:
-      show-details: always
+      show-details: always    # LOCAL ONLY - restrict once Spring Security lands
 
 info:
   app:

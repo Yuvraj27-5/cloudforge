@@ -8,8 +8,12 @@ deployment history), scores deployment risk with a machine learning model, and
 approves, gates, or blocks the deployment. After deploying it watches the workload
 and rolls back automatically when health degrades.
 
-> **Status: Phase 0 — skeleton only.** No risk model, no Kubernetes, no cloud
-> providers, no authentication yet. See the roadmap at the bottom.
+> **Status: Phase 1 complete.** Project management works end to end. No risk model,
+> no Kubernetes, no cloud providers, no authentication yet. See the roadmap below.
+
+> **Local note:** Postgres is mapped to host port **5433**, not the default 5432,
+> because another service already holds 5432 on the primary dev machine. Both
+> `.env` (`POSTGRES_PORT`) and `application.yml` (`CLOUDFORGE_DB_URL`) reflect this.
 
 ## Architecture
 
@@ -63,6 +67,7 @@ Open http://localhost:5173. It should report the backend as reachable.
 |---|---|---|
 | Backend health | http://localhost:8080/actuator/health | `"status":"UP"` with a `db` component UP |
 | Backend API | http://localhost:8080/api/v1/system/info | JSON, phase `0` |
+| Projects API | http://localhost:8080/api/v1/projects | Paged project list |
 | ML health | http://localhost:8000/health | `"status":"UP"`, `"model_loaded":false` |
 | ML docs | http://localhost:8000/docs | Swagger UI |
 | Frontend | http://localhost:5173 | Backend reachable |
@@ -107,7 +112,7 @@ identity, never from committed files. See
 | Phase | Deliverable |
 |---|---|
 | 0 | Repository and local environment ✅ |
-| 1 | Project management CRUD, end to end |
+| 1 | Project management CRUD, end to end ✅ |
 | 2 | Deployment records and lifecycle |
 | 3 | Sample application |
 | 4 | GitHub Actions CI |
