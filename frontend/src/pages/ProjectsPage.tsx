@@ -1,10 +1,12 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
 
-import { useCreateProject, useProjects } from "../api/projects"
 import { ApiError } from "../api/client"
+import { useCreateProject, useProjects } from "../api/projects"
+import AppShell from "../components/AppShell"
+import Badge from "../components/Badge"
 import Field from "../components/Field"
-import StatusMessage from "../components/StatusMessage"
+import TableSkeleton from "../components/TableSkeleton"
 import {
   CLOUD_PROVIDERS,
   ENVIRONMENTS,
@@ -27,10 +29,12 @@ export default function ProjectsPage() {
   const { data, isPending, isError, error } = useProjects()
   const createProject = useCreateProject()
   const [form, setForm] = useState(EMPTY_FORM)
+  const [formOpen, setFormOpen] = useState(false)
 
   const apiError = createProject.error instanceof ApiError ? createProject.error : undefined
+  const projects = data?.content ?? []
 
-  function handleSubmit() {
+  function submit() {
     createProject.mutate(
       {
         name: form.name,
@@ -40,134 +44,179 @@ export default function ProjectsPage() {
         environment: form.environment,
         description: form.description || undefined,
       },
-      { onSuccess: () => setForm(EMPTY_FORM) },
+      {
+        onSuccess: () => {
+          setForm(EMPTY_FORM)
+          setFormOpen(false)
+        },
+      },
     )
   }
 
+  const count = data?.totalElements ?? 0
+
   return (
-    <div className="stack">
+    <AppShell
+      title="Projects"
+      context={count > 0 ? `${count} tracked` : undefined}
+      action={
+        !formOpen && (
+          <button onClick={() => setFormOpen(true)}>Add project</button>
+        )
+      }
+    >
+      {formOpen && (
+        <section>
+          <div className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>Add a project</h2>
+                <p>CloudForge watches this repository and scores its deployments.</p>
+              </div>
+            </div>
+
+            {apiError && apiError.fieldErrors.length === 0 && (
+              <div className="alert error" role="alert">
+                {apiError.message}
+              </div>
+            )}
+
+            <div className="form-grid">
+              <Field label="Name" htmlFor="name" error={apiError?.forField("name")}>
+                <input
+                  id="name"
+                  value={form.name}
+                  aria-invalid={Boolean(apiError?.forField("name"))}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  placeholder="payments-api"
+                />
+              </Field>
+
+              <Field
+                label="Repository URL"
+                htmlFor="repositoryUrl"
+                error={apiError?.forField("repositoryUrl")}
+              >
+                <input
+                  id="repositoryUrl"
+                  value={form.repositoryUrl}
+                  aria-invalid={Boolean(apiError?.forField("repositoryUrl"))}
+                  onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })}
+                  placeholder="https://github.com/acme/payments-api"
+                />
+              </Field>
+
+              <Field label="Default branch" htmlFor="defaultBranch">
+                <input
+                  id="defaultBranch"
+                  value={form.defaultBranch}
+                  onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })}
+                  placeholder="main"
+                />
+              </Field>
+
+              <Field label="Cloud provider" htmlFor="cloudProvider">
+                <select
+                  id="cloudProvider"
+                  value={form.cloudProvider}
+                  onChange={(event) =>
+                    setForm({ ...form, cloudProvider: event.target.value as CloudProvider })
+                  }
+                >
+                  {CLOUD_PROVIDERS.map((provider) => (
+                    <option key={provider} value={provider}>
+                      {PROVIDER_LABELS[provider]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Environment" htmlFor="environment">
+                <select
+                  id="environment"
+                  value={form.environment}
+                  onChange={(event) =>
+                    setForm({ ...form, environment: event.target.value as Environment })
+                  }
+                >
+                  {ENVIRONMENTS.map((environment) => (
+                    <option key={environment} value={environment}>
+                      {ENVIRONMENT_LABELS[environment]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Description" htmlFor="description">
+                <input
+                  id="description"
+                  value={form.description}
+                  onChange={(event) => setForm({ ...form, description: event.target.value })}
+                  placeholder="What this service does"
+                />
+              </Field>
+            </div>
+
+            <div className="button-row">
+              <button onClick={submit} disabled={createProject.isPending}>
+                {createProject.isPending ? "Adding…" : "Add project"}
+              </button>
+              <button
+                className="secondary"
+                onClick={() => {
+                  setFormOpen(false)
+                  setForm(EMPTY_FORM)
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section>
-        <h2>New project</h2>
-
-        <div className="form-grid">
-          <Field label="Name" htmlFor="name" error={apiError?.forField("name")}>
-            <input
-              id="name"
-              value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="payments-api"
-            />
-          </Field>
-
-          <Field
-            label="Repository URL"
-            htmlFor="repositoryUrl"
-            error={apiError?.forField("repositoryUrl")}
-          >
-            <input
-              id="repositoryUrl"
-              value={form.repositoryUrl}
-              onChange={(event) => setForm({ ...form, repositoryUrl: event.target.value })}
-              placeholder="https://github.com/acme/payments-api"
-            />
-          </Field>
-
-          <Field label="Default branch" htmlFor="defaultBranch">
-            <input
-              id="defaultBranch"
-              value={form.defaultBranch}
-              onChange={(event) => setForm({ ...form, defaultBranch: event.target.value })}
-              placeholder="main"
-            />
-          </Field>
-
-          <Field label="Cloud provider" htmlFor="cloudProvider">
-            <select
-              id="cloudProvider"
-              value={form.cloudProvider}
-              onChange={(event) =>
-                setForm({ ...form, cloudProvider: event.target.value as CloudProvider })
-              }
-            >
-              {CLOUD_PROVIDERS.map((provider) => (
-                <option key={provider} value={provider}>
-                  {PROVIDER_LABELS[provider]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Environment" htmlFor="environment">
-            <select
-              id="environment"
-              value={form.environment}
-              onChange={(event) =>
-                setForm({ ...form, environment: event.target.value as Environment })
-              }
-            >
-              {ENVIRONMENTS.map((environment) => (
-                <option key={environment} value={environment}>
-                  {ENVIRONMENT_LABELS[environment]}
-                </option>
-              ))}
-            </select>
-          </Field>
-
-          <Field label="Description" htmlFor="description">
-            <input
-              id="description"
-              value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
-              placeholder="Optional"
-            />
-          </Field>
-        </div>
-
-        <button onClick={handleSubmit} disabled={createProject.isPending}>
-          {createProject.isPending ? "Creating…" : "Create project"}
-        </button>
-
-        {apiError && apiError.fieldErrors.length === 0 && (
-          <StatusMessage kind="error">{apiError.message}</StatusMessage>
-        )}
-      </section>
-
-      <section>
-        <h2>Projects</h2>
-
-        {isPending && <StatusMessage kind="loading">Loading…</StatusMessage>}
+        {isPending && <TableSkeleton />}
 
         {isError && (
-          <StatusMessage kind="error">
-            Could not load projects: {(error as Error).message}
-          </StatusMessage>
+          <div className="alert error" role="alert">
+            Could not load projects. {(error as Error).message}
+          </div>
         )}
 
-        {data && data.content.length === 0 && (
-          <StatusMessage kind="empty">No projects yet. Create one above.</StatusMessage>
+        {data && projects.length === 0 && !formOpen && (
+          <div className="empty">
+            <h3>No projects yet</h3>
+            <p>Add a repository and CloudForge will start scoring its deployments.</p>
+            <button onClick={() => setFormOpen(true)}>Add project</button>
+          </div>
         )}
 
-        {data && data.content.length > 0 && (
+        {projects.length > 0 && (
           <table>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Provider</th>
+                <th>Project</th>
+                <th>Repository</th>
+                <th>Target</th>
                 <th>Environment</th>
-                <th>Branch</th>
-                <th>Created</th>
+                <th>Added</th>
               </tr>
             </thead>
             <tbody>
-              {data.content.map((project) => (
+              {projects.map((project) => (
                 <tr key={project.id}>
-                  <td>
+                  <td className="name">
                     <Link to={`/projects/${project.id}`}>{project.name}</Link>
                   </td>
+                  <td className="repo mono">{shortRepo(project.repositoryUrl)}</td>
                   <td>{PROVIDER_LABELS[project.cloudProvider]}</td>
-                  <td>{ENVIRONMENT_LABELS[project.environment]}</td>
                   <td>
-                    <code>{project.defaultBranch}</code>
+                    <Badge
+                      emphasis={project.environment === "PRODUCTION" ? "production" : undefined}
+                    >
+                      {ENVIRONMENT_LABELS[project.environment]}
+                    </Badge>
                   </td>
                   <td>{new Date(project.createdAt).toLocaleDateString()}</td>
                 </tr>
@@ -175,13 +224,15 @@ export default function ProjectsPage() {
             </tbody>
           </table>
         )}
-
-        {data && data.totalElements > 0 && (
-          <p className="muted">
-            {data.totalElements} project{data.totalElements === 1 ? "" : "s"}
-          </p>
-        )}
       </section>
-    </div>
+    </AppShell>
   )
+}
+
+/** github.com/acme/payments-api -> acme/payments-api */
+function shortRepo(url: string): string {
+  return url
+    .replace(/^https?:\/\/[^/]+\//, "")
+    .replace(/^git@[^:]+:/, "")
+    .replace(/\.git$/, "")
 }

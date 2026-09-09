@@ -1,7 +1,8 @@
 import { Link, useParams } from "react-router-dom"
 
 import { useDeleteProject, useProject } from "../api/projects"
-import StatusMessage from "../components/StatusMessage"
+import AppShell from "../components/AppShell"
+import Badge from "../components/Badge"
 import { ENVIRONMENT_LABELS, PROVIDER_LABELS } from "../types/project"
 
 export default function ProjectDetailPage() {
@@ -10,63 +11,84 @@ export default function ProjectDetailPage() {
   const deleteProject = useDeleteProject()
 
   if (isPending) {
-    return <StatusMessage kind="loading">Loading…</StatusMessage>
+    return (
+      <AppShell title="Project">
+        <p>Loading…</p>
+      </AppShell>
+    )
   }
 
   if (isError) {
-    return <StatusMessage kind="error">{(error as Error).message}</StatusMessage>
+    return (
+      <AppShell title="Project">
+        <div className="alert error" role="alert">
+          {(error as Error).message}
+        </div>
+        <Link to="/projects">Back to projects</Link>
+      </AppShell>
+    )
   }
 
   return (
-    <div className="stack">
-      <p>
-        <Link to="/projects">← All projects</Link>
-      </p>
-
-      <h2>{project.name}</h2>
-      {project.description && <p className="muted">{project.description}</p>}
-
-      <dl className="detail-grid">
-        <dt>Repository</dt>
-        <dd>
-          <code>{project.repositoryUrl}</code>
-        </dd>
-
-        <dt>Default branch</dt>
-        <dd>
-          <code>{project.defaultBranch}</code>
-        </dd>
-
-        <dt>Cloud provider</dt>
-        <dd>{PROVIDER_LABELS[project.cloudProvider]}</dd>
-
-        <dt>Environment</dt>
-        <dd>{ENVIRONMENT_LABELS[project.environment]}</dd>
-
-        <dt>Project ID</dt>
-        <dd>
-          <code>{project.id}</code>
-        </dd>
-
-        <dt>Created</dt>
-        <dd>{new Date(project.createdAt).toLocaleString()}</dd>
-
-        <dt>Updated</dt>
-        <dd>{new Date(project.updatedAt).toLocaleString()}</dd>
-      </dl>
-
+    <AppShell
+      title={project.name}
+      context={PROVIDER_LABELS[project.cloudProvider]}
+      action={
+        <button
+          className="destructive"
+          onClick={() => deleteProject.mutate(project.id)}
+          disabled={deleteProject.isPending}
+        >
+          {deleteProject.isPending ? "Removing…" : "Remove project"}
+        </button>
+      }
+    >
       <section>
-        <h3>Deployments</h3>
-        <p className="muted">Deployment history arrives in Phase 2.</p>
+        <p>
+          <Link to="/projects">Back to projects</Link>
+        </p>
+
+        {project.description && <p>{project.description}</p>}
+
+        <div className="panel">
+          <dl className="detail-grid">
+            <dt>Repository</dt>
+            <dd className="mono">{project.repositoryUrl}</dd>
+
+            <dt>Default branch</dt>
+            <dd className="mono">{project.defaultBranch}</dd>
+
+            <dt>Deployment target</dt>
+            <dd>{PROVIDER_LABELS[project.cloudProvider]}</dd>
+
+            <dt>Environment</dt>
+            <dd>
+              <Badge emphasis={project.environment === "PRODUCTION" ? "production" : undefined}>
+                {ENVIRONMENT_LABELS[project.environment]}
+              </Badge>
+            </dd>
+
+            <dt>Project ID</dt>
+            <dd className="mono">{project.id}</dd>
+
+            <dt>Added</dt>
+            <dd>{new Date(project.createdAt).toLocaleString()}</dd>
+
+            <dt>Last updated</dt>
+            <dd>{new Date(project.updatedAt).toLocaleString()}</dd>
+          </dl>
+        </div>
       </section>
 
-      <button
-        className="danger"
-        onClick={() => deleteProject.mutate(project.id)}
-        disabled={deleteProject.isPending}
-      >
-        {deleteProject.isPending ? "Deleting…" : "Delete project"}
-      </button>
-    </div>
+      <section>
+        <div className="upcoming">
+          <h3>Deployments</h3>
+          <p>
+            Deployment history, risk scores and rollback events appear here once the pipeline
+            stages are built.
+          </p>
+        </div>
+      </section>
+    </AppShell>
   )
 }

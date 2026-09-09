@@ -5,7 +5,6 @@ type Props = {
   children: React.ReactNode
 }
 
-/** Label + control + inline error. Keeps the create form readable. */
 export default function Field({ label, htmlFor, error, children }: Props) {
   return (
     <div className="field">
