@@ -19,5 +19,23 @@ services:
       timeout: 5s
       retries: 5
 
+  # Profile, so `docker compose up -d` still starts only the database.
+  # Run it with: docker compose --profile sample up -d --build
+  sample-app:
+    profiles: [sample]
+    build:
+      context: ./sample-app
+      args:
+        COMMIT_SHA: local
+        APP_VERSION: local
+    container_name: cloudforge-sample-app
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      FAILURE_MODE: ${SAMPLE_FAILURE_MODE:-none}
+      FAILURE_DELAY_SECONDS: ${SAMPLE_FAILURE_DELAY_SECONDS:-30}
+    ports:
+      - "${SAMPLE_APP_PORT:-3000}:3000"
+
 volumes:
   postgres_data:

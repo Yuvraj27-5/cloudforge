@@ -1,0 +1,13 @@
+# Everything the image does not need. A smaller build context is faster and
+# keeps stray files out of the layer.
+
+node_modules/
+test/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+README.md
+Dockerfile
+.dockerignore

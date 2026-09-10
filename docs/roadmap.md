@@ -11,7 +11,7 @@ criterion.
 | 2 ✅ | Deployment records | Full deployment lifecycle representable before any real deploy exists | `backend/deployment`, `frontend/pages` |
 | 3 ✅ | Sample application | Runs locally; healthy and unhealthy variants both behave | `sample-app` |
 | 4 ✅ | Basic CI | Every push builds and tests automatically | `.github/workflows` |
-| 5 | Docker | Sample app runs in a container, tagged by commit SHA | `sample-app`, workflows |
+| 5 ✅ | Docker | Sample app runs in a container, tagged by commit SHA | `sample-app`, workflows |
 | 6 | Security and code analysis | Trivy and static analysis run in CI; metrics stored | workflows, `backend/deployment` |
 | 7 | ML risk engine | `POST /predict-risk` returns a scored, explained result the backend consumes | `ml-service`, `backend/risk` |
 | 8 | Decision engine | LOW approves, MEDIUM gates, HIGH blocks; every decision persisted | `backend/risk`, `backend/deployment` |
