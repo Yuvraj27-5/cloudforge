@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: nothing here writes to the repository.
+permissions:
+  contents: read
+
+# A new push supersedes an in-flight run on the same branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Make the Maven wrapper executable
+        run: chmod +x ./mvnw
+        working-directory: backend
+
+      - name: Run tests
+        run: ./mvnw -B --no-transfer-progress test
+        working-directory: backend
+
+  backend-smoke:
+    name: Backend starts against Postgres
+    runs-on: ubuntu-latest
+
+    # Unit tests pass with mocks even when the application cannot start. This job
+    # boots it against a real database and asserts the datasource and migrations
+    # actually work, which is the failure mode that has bitten this project.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: cloudforge
+          POSTGRES_USER: cloudforge
+          POSTGRES_PASSWORD: ci_only_not_a_secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cloudforge -d cloudforge"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      CLOUDFORGE_DB_URL: jdbc:postgresql://localhost:5432/cloudforge
+      CLOUDFORGE_DB_USER: cloudforge
+      CLOUDFORGE_DB_PASSWORD: ci_only_not_a_secret
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Make the Maven wrapper executable
+        run: chmod +x ./mvnw
+        working-directory: backend
+
+      - name: Build the application
+        run: ./mvnw -B --no-transfer-progress -DskipTests package
+        working-directory: backend
+
+      - name: Start the application
+        run: |
+          # Globbed rather than hard-coded: the jar name follows the pom version.
+          JAR=$(ls target/*.jar | head -n1)
+          echo "Starting $JAR"
+          java -jar "$JAR" > "$RUNNER_TEMP/backend.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/backend.pid"
+        working-directory: backend
+
+      - name: Wait for the application to report healthy
+        run: |
+          for attempt in $(seq 1 45); do
+            if curl -sf http://localhost:8080/actuator/health > "$RUNNER_TEMP/health.json"; then
+              echo "Application is up after ${attempt}s"
+              cat "$RUNNER_TEMP/health.json"
+              exit 0
+            fi
+            sleep 1
+          done
+
+          echo "Application did not start within 45s"
+          cat "$RUNNER_TEMP/backend.log"
+          exit 1
+
+      - name: Assert the database component is UP
+        run: |
+          # Overall UP is not enough: if the datasource were missing entirely the
+          # health endpoint would still report UP with no db indicator at all.
+          jq -e '.components.db.status == "UP"' "$RUNNER_TEMP/health.json" > /dev/null \
+            || { echo "Database component is not UP"; jq . "$RUNNER_TEMP/health.json"; exit 1; }
+
+      - name: Assert Flyway applied its migrations
+        run: |
+          # This is the check that would have caught Flyway silently not running.
+          TABLES=$(PGPASSWORD=ci_only_not_a_secret psql -h localhost -U cloudforge -d cloudforge -tAc \
+            "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name")
+          echo "$TABLES"
+
+          for table in flyway_schema_history projects deployments deployment_events; do
+            echo "$TABLES" | grep -qx "$table" || { echo "Missing table: $table"; exit 1; }
+          done
+
+      - name: Show application logs on failure
+        if: failure()
+        run: cat "$RUNNER_TEMP/backend.log"
+
+      - name: Stop the application
+        if: always()
+        run: kill "$(cat "$RUNNER_TEMP/backend.pid")" || true
+
+  sample-app-tests:
+    name: Sample app tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          # No lockfile: the sample app has zero dependencies by design.
+          package-manager-cache: false
+
+      - name: Run tests
+        run: npm test
+        working-directory: sample-app
+
+  frontend-build:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Type-check and build
+        run: npm run build
+        working-directory: frontend
