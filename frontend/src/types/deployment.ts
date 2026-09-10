@@ -35,11 +35,32 @@ export type DeploymentEvent = {
   occurredAt: string
 }
 
+export type DeploymentMetrics = {
+  filesChanged: number | null
+  linesAdded: number | null
+  linesDeleted: number | null
+  testPassRate: number | null
+  testCoverage: number | null
+  codeComplexity: number | null
+  codeSmells: number | null
+  bugs: number | null
+  securityHotspots: number | null
+  criticalVulnerabilities: number | null
+  highVulnerabilities: number | null
+  mediumVulnerabilities: number | null
+  lowVulnerabilities: number | null
+  hasBlockingVulnerabilities: boolean
+  source: string
+  recordedAt: string
+}
+
 export type DeploymentDetail = {
   deployment: Deployment
   events: DeploymentEvent[]
   /** The backend owns the state machine; the UI renders whatever it allows. */
   allowedTransitions: DeploymentStatus[]
+  /** Null until the pipeline reports. Absent is not the same as all-zero. */
+  metrics: DeploymentMetrics | null
 }
 
 export type CreateDeploymentRequest = {

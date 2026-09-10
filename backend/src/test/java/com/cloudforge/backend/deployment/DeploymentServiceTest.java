@@ -2,6 +2,7 @@ package com.cloudforge.backend.deployment;
 
 import com.cloudforge.backend.common.exception.ResourceNotFoundException;
 import com.cloudforge.backend.deployment.dto.CreateDeploymentRequest;
+import com.cloudforge.backend.deployment.dto.RecordMetricsRequest;
 import com.cloudforge.backend.deployment.dto.UpdateDeploymentStatusRequest;
 import com.cloudforge.backend.project.CloudProvider;
 import com.cloudforge.backend.project.Environment;
@@ -14,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +35,9 @@ class DeploymentServiceTest {
 
     @Mock
     private DeploymentEventRepository events;
+
+    @Mock
+    private DeploymentMetricsRepository metrics;
 
     @Mock
     private ProjectRepository projects;
@@ -95,6 +100,7 @@ class DeploymentServiceTest {
         UUID id = deployment.getId();
         when(deployments.findById(id)).thenReturn(Optional.of(deployment));
         when(events.findByDeploymentIdOrderByOccurredAtAsc(id)).thenReturn(List.of());
+        when(metrics.findByDeploymentId(id)).thenReturn(Optional.empty());
 
         service.updateStatus(id, new UpdateDeploymentStatusRequest(
                 DeploymentStatus.RUNNING, "Pipeline started", "github-actions"));
@@ -112,6 +118,7 @@ class DeploymentServiceTest {
         UUID id = deployment.getId();
         when(deployments.findById(id)).thenReturn(Optional.of(deployment));
         when(events.findByDeploymentIdOrderByOccurredAtAsc(id)).thenReturn(List.of());
+        when(metrics.findByDeploymentId(id)).thenReturn(Optional.empty());
 
         // A pipeline retrying its callback must not produce an error.
         var response = service.updateStatus(id,
@@ -119,5 +126,55 @@ class DeploymentServiceTest {
 
         assertThat(response.deployment().status()).isEqualTo(DeploymentStatus.PENDING);
         verify(events, never()).save(any());
+    }
+
+    @Test
+    void metricsAreUpsertedRatherThanDuplicated() {
+        Deployment deployment = new Deployment(project, "a1b2c3d", null, "aush");
+        UUID id = deployment.getId();
+        DeploymentMetrics existing = new DeploymentMetrics(deployment);
+
+        when(deployments.findById(id)).thenReturn(Optional.of(deployment));
+        when(metrics.findByDeploymentId(id)).thenReturn(Optional.of(existing));
+        when(events.findByDeploymentIdOrderByOccurredAtAsc(id)).thenReturn(List.of());
+
+        service.recordMetrics(id, new RecordMetricsRequest(
+                12, 340, 55,
+                new BigDecimal("98.50"), new BigDecimal("74.20"),
+                14, 3, 1, 0,
+                0, 2, 5, 9,
+                "github-actions"));
+
+        // The same row is updated, so a pipeline reporting twice does not create
+        // a second metrics record for one deployment.
+        verify(metrics).save(existing);
+        assertThat(existing.getHighVulnerabilities()).isEqualTo(2);
+        assertThat(existing.getTestCoverage()).isEqualByComparingTo("74.20");
+    }
+
+    @Test
+    void aCriticalVulnerabilityIsFlaggedAsBlocking() {
+        Deployment deployment = new Deployment(project, "a1b2c3d", null, "aush");
+        DeploymentMetrics recorded = new DeploymentMetrics(deployment);
+
+        recorded.record(1, 10, 0, null, null, null, null, null, null,
+                1, 0, 0, 0, "github-actions");
+
+        // Phase 8 treats this as a hard gate: a critical CVE is not a probability.
+        assertThat(recorded.hasBlockingVulnerabilities()).isTrue();
+    }
+
+    @Test
+    void unmeasuredIsNotTreatedAsClean() {
+        Deployment deployment = new Deployment(project, "a1b2c3d", null, "aush");
+        DeploymentMetrics recorded = new DeploymentMetrics(deployment);
+
+        recorded.record(1, 10, 0, null, null, null, null, null, null,
+                null, null, null, null, "manual");
+
+        // Null means no scan ran. Reporting it as zero would tell the risk model
+        // the change was clean.
+        assertThat(recorded.getCriticalVulnerabilities()).isNull();
+        assertThat(recorded.hasBlockingVulnerabilities()).isFalse();
     }
 }

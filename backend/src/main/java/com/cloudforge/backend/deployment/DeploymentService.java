@@ -4,6 +4,7 @@ import com.cloudforge.backend.common.exception.ResourceNotFoundException;
 import com.cloudforge.backend.deployment.dto.CreateDeploymentRequest;
 import com.cloudforge.backend.deployment.dto.DeploymentDetailResponse;
 import com.cloudforge.backend.deployment.dto.DeploymentResponse;
+import com.cloudforge.backend.deployment.dto.RecordMetricsRequest;
 import com.cloudforge.backend.deployment.dto.UpdateDeploymentStatusRequest;
 import com.cloudforge.backend.project.Project;
 import com.cloudforge.backend.project.ProjectRepository;
@@ -25,13 +26,16 @@ public class DeploymentService {
 
     private final DeploymentRepository deployments;
     private final DeploymentEventRepository events;
+    private final DeploymentMetricsRepository metrics;
     private final ProjectRepository projects;
 
     public DeploymentService(DeploymentRepository deployments,
                              DeploymentEventRepository events,
+                             DeploymentMetricsRepository metrics,
                              ProjectRepository projects) {
         this.deployments = deployments;
         this.events = events;
+        this.metrics = metrics;
         this.projects = projects;
     }
 
@@ -53,8 +57,52 @@ public class DeploymentService {
 
     public DeploymentDetailResponse findById(UUID id) {
         Deployment deployment = getOrThrow(id);
+        return detailOf(deployment);
+    }
+
+    /**
+     * Upsert: a pipeline may report partial metrics early and complete them later,
+     * for example vulnerability counts before coverage finishes.
+     */
+    @Transactional
+    public DeploymentDetailResponse recordMetrics(UUID id, RecordMetricsRequest request) {
+        Deployment deployment = getOrThrow(id);
+
+        DeploymentMetrics existing = metrics.findByDeploymentId(id)
+                .orElseGet(() -> new DeploymentMetrics(deployment));
+
+        existing.record(
+                request.filesChanged(),
+                request.linesAdded(),
+                request.linesDeleted(),
+                request.testPassRate(),
+                request.testCoverage(),
+                request.codeComplexity(),
+                request.codeSmells(),
+                request.bugs(),
+                request.securityHotspots(),
+                request.criticalVulnerabilities(),
+                request.highVulnerabilities(),
+                request.mediumVulnerabilities(),
+                request.lowVulnerabilities(),
+                request.source()
+        );
+
+        metrics.save(existing);
+
+        log.info("Recorded metrics for deployment id={} source={} critical={} high={} coverage={}",
+                id, request.source(), request.criticalVulnerabilities(),
+                request.highVulnerabilities(), request.testCoverage());
+
+        return detailOf(deployment);
+    }
+
+    private DeploymentDetailResponse detailOf(Deployment deployment) {
+        UUID id = deployment.getId();
         return DeploymentDetailResponse.from(
-                deployment, events.findByDeploymentIdOrderByOccurredAtAsc(id));
+                deployment,
+                events.findByDeploymentIdOrderByOccurredAtAsc(id),
+                metrics.findByDeploymentId(id).orElse(null));
     }
 
     @Transactional
@@ -86,8 +134,7 @@ public class DeploymentService {
 
         if (from == to) {
             // Idempotent: a pipeline retrying the same callback should not fail.
-            return DeploymentDetailResponse.from(
-                    deployment, events.findByDeploymentIdOrderByOccurredAtAsc(id));
+            return detailOf(deployment);
         }
 
         if (!from.canTransitionTo(to)) {
@@ -100,8 +147,7 @@ public class DeploymentService {
         log.info("Deployment id={} correlationId={} moved {} -> {} reason={}",
                 id, deployment.getCorrelationId(), from, to, request.reason());
 
-        return DeploymentDetailResponse.from(
-                deployment, events.findByDeploymentIdOrderByOccurredAtAsc(id));
+        return detailOf(deployment);
     }
 
     private Deployment getOrThrow(UUID id) {

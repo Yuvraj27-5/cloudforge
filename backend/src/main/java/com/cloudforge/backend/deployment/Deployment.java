@@ -89,13 +89,20 @@ public class Deployment {
      * Applies a status change. The transition is validated by the service before
      * this is called; the entity owns the side effects of the change.
      */
-    void applyStatus(DeploymentStatus next, Instant when) {
+        void applyStatus(DeploymentStatus next, Instant when) {
         this.status = next;
 
         if (next == DeploymentStatus.RUNNING && this.startedAt == null) {
             this.startedAt = when;
         }
-        if (next.isTerminal()) {
+
+        // Not isTerminal(): SUCCEEDED is not terminal, because a rollback can
+        // follow it, but the deployment run has finished. Completion is about the
+        // run ending, not about the state machine having no exits.
+        //
+        // First write wins: a rollback happening later must not overwrite when the
+        // original deployment actually completed.
+        if (!next.isActive() && this.completedAt == null) {
             this.completedAt = when;
         }
     }

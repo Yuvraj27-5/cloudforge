@@ -4,6 +4,7 @@ import com.cloudforge.backend.common.dto.PageResponse;
 import com.cloudforge.backend.deployment.dto.CreateDeploymentRequest;
 import com.cloudforge.backend.deployment.dto.DeploymentDetailResponse;
 import com.cloudforge.backend.deployment.dto.DeploymentResponse;
+import com.cloudforge.backend.deployment.dto.RecordMetricsRequest;
 import com.cloudforge.backend.deployment.dto.UpdateDeploymentStatusRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -65,6 +67,18 @@ public class DeploymentController {
         return ResponseEntity
                 .created(uriBuilder.path("/api/v1/deployments/{id}").build(created.id()))
                 .body(created);
+    }
+
+    /**
+     * Reported by the pipeline after scanning and testing. PUT because it is an
+     * upsert of one metrics record, not an append.
+     */
+    @PutMapping("/deployments/{id}/metrics")
+    public DeploymentDetailResponse recordMetrics(
+            @PathVariable UUID id,
+            @Valid @RequestBody RecordMetricsRequest request) {
+
+        return service.recordMetrics(id, request);
     }
 
     @PatchMapping("/deployments/{id}/status")

@@ -710,3 +710,53 @@ td .subtle {
   min-width: 20rem;
   flex: 1;
 }
+
+/* ---------------------------------------------------------------
+   Pipeline metrics
+   --------------------------------------------------------------- */
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1.25rem;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.metric-label {
+  font-size: 0.8125rem;
+  color: var(--fg-muted);
+}
+
+.metric-value {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-unit {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.sev-good {
+  color: var(--risk-low);
+}
+
+.sev-warn {
+  color: var(--risk-medium);
+}
+
+.sev-bad {
+  color: var(--risk-high);
+}
+
+.sev-neutral {
+  color: var(--fg-muted);
+}

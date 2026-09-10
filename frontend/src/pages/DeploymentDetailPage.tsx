@@ -5,6 +5,7 @@ import { ApiError } from "../api/client"
 import { useDeployment, useUpdateDeploymentStatus } from "../api/deployments"
 import AppShell from "../components/AppShell"
 import DeploymentTimeline from "../components/DeploymentTimeline"
+import MetricsPanel from "../components/MetricsPanel"
 import StatusPill from "../components/StatusPill"
 import { STATUS_LABELS, type DeploymentStatus } from "../types/deployment"
 
@@ -33,7 +34,7 @@ export default function DeploymentDetailPage() {
     )
   }
 
-  const { deployment, events, allowedTransitions } = data
+  const { deployment, events, allowedTransitions, metrics } = data
   const apiError = updateStatus.error instanceof ApiError ? updateStatus.error : undefined
 
   function move(status: DeploymentStatus) {
@@ -130,6 +131,11 @@ export default function DeploymentDetailPage() {
           </div>
         </section>
       )}
+
+      <section>
+        <h2>Pipeline metrics</h2>
+        <MetricsPanel metrics={metrics} />
+      </section>
 
       <section>
         <h2>Timeline</h2>
