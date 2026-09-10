@@ -9,7 +9,7 @@ import { useProjects } from "../api/projects"
  */
 const PIPELINE = [
   { label: "Projects", to: "/projects", phase: null },
-  { label: "Deployments", to: "/deployments", phase: null },
+  { label: "Deployments", to: null, phase: "2" },
   { label: "Risk", to: null, phase: "7" },
   { label: "Monitoring", to: null, phase: "10" },
 ] as const

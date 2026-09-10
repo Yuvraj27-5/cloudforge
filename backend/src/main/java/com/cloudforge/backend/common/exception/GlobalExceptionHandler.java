@@ -1,5 +1,6 @@
 package com.cloudforge.backend.common.exception;
 
+import com.cloudforge.backend.deployment.InvalidStatusTransitionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -34,6 +35,14 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setType(URI.create(ERROR_BASE + "conflict"));
         problem.setTitle("Resource already exists");
+        return problem;
+    }
+
+    @ExceptionHandler(InvalidStatusTransitionException.class)
+    ProblemDetail handleInvalidTransition(InvalidStatusTransitionException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setType(URI.create(ERROR_BASE + "invalid-transition"));
+        problem.setTitle("Invalid status transition");
         return problem;
     }
 
