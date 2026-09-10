@@ -2,3 +2,10 @@ fastapi>=0.115
 uvicorn[standard]>=0.34
 pydantic>=2.10
 pydantic-settings>=2.7
+
+# Risk model. Gradient boosting over tabular features: few inputs, mostly
+# monotonic relationships, and attribution that has to be explainable to whoever
+# is told their deployment is blocked.
+scikit-learn>=1.6
+numpy>=2.1
+joblib>=1.4

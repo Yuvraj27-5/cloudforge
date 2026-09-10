@@ -10,7 +10,7 @@ deployment history), scores deployment risk with a machine learning model, and
 approves, gates, or blocks the deployment. After deploying it watches the workload
 and rolls back automatically when health degrades.
 
-> **Status: Phase 6 complete.** Project management works end to end. No risk model,
+> **Status: Phase 7 complete.** Project management works end to end. No risk model,
 > no Kubernetes, no cloud providers, no authentication yet. See the roadmap below.
 
 > **Local note:** Postgres is mapped to host port **5433**, not the default 5432,
@@ -120,7 +120,7 @@ identity, never from committed files. See
 | 4 | GitHub Actions CI ✅ |
 | 5 | Docker build and tagging ✅ |
 | 6 | Trivy and static analysis ✅ |
-| 7 | ML risk engine |
+| 7 | ML risk engine ✅ |
 | 8 | Deployment decision engine |
 | 9 | Local Kubernetes (kind) |
 | 10 | Prometheus and Grafana |

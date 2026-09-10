@@ -21,7 +21,7 @@ ml-service/.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
-ml-service/models/*.joblib
+ml-service/app/models/*.joblib
 
 # --- IDE / OS ---
 .idea/
