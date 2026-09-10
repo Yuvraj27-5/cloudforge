@@ -1,0 +1,15 @@
+{
+  "name": "cloudforge-sample-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The workload CloudForge deploys, scores and rolls back",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  }
+}
