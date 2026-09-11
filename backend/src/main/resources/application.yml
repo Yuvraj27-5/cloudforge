@@ -18,6 +18,15 @@ spring:
     enabled: true
     locations: classpath:db/migration
 
+cloudforge:
+  risk:
+    ml-service-url: ${CLOUDFORGE_ML_URL:http://localhost:8000}
+    # Short: a hanging risk engine must not hold a pipeline open.
+    timeout-seconds: 5
+    # Score bands. Policy, not model — changing these must not require retraining.
+    low-max: 30
+    medium-max: 70
+
 server:
   port: 8080
   error:

@@ -3,9 +3,11 @@ import { Link, useParams } from "react-router-dom"
 
 import { ApiError } from "../api/client"
 import { useDeployment, useUpdateDeploymentStatus } from "../api/deployments"
+import { useAssessDeployment } from "../api/risk"
 import AppShell from "../components/AppShell"
 import DeploymentTimeline from "../components/DeploymentTimeline"
 import MetricsPanel from "../components/MetricsPanel"
+import RiskPanel from "../components/RiskPanel"
 import StatusPill from "../components/StatusPill"
 import { STATUS_LABELS, type DeploymentStatus } from "../types/deployment"
 
@@ -13,6 +15,7 @@ export default function DeploymentDetailPage() {
   const { id = "" } = useParams()
   const { data, isPending, isError, error } = useDeployment(id)
   const updateStatus = useUpdateDeploymentStatus(id)
+  const assess = useAssessDeployment(id)
   const [reason, setReason] = useState("")
 
   if (isPending) {
@@ -34,7 +37,7 @@ export default function DeploymentDetailPage() {
     )
   }
 
-  const { deployment, events, allowedTransitions, metrics } = data
+  const { deployment, events, allowedTransitions, metrics, riskAssessment } = data
   const apiError = updateStatus.error instanceof ApiError ? updateStatus.error : undefined
 
   function move(status: DeploymentStatus) {
@@ -58,6 +61,12 @@ export default function DeploymentDetailPage() {
         {apiError && (
           <div className="alert error" role="alert">
             {apiError.message}
+          </div>
+        )}
+
+        {assess.error && (
+          <div className="alert error" role="alert">
+            {(assess.error as Error).message}
           </div>
         )}
 
@@ -131,6 +140,16 @@ export default function DeploymentDetailPage() {
           </div>
         </section>
       )}
+
+      <section>
+        <h2>Deployment risk</h2>
+        <RiskPanel
+          assessment={riskAssessment}
+          onAssess={() => assess.mutate()}
+          isAssessing={assess.isPending}
+          canAssess={Boolean(metrics)}
+        />
+      </section>
 
       <section>
         <h2>Pipeline metrics</h2>

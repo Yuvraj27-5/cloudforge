@@ -8,6 +8,7 @@ import com.cloudforge.backend.project.CloudProvider;
 import com.cloudforge.backend.project.Environment;
 import com.cloudforge.backend.project.Project;
 import com.cloudforge.backend.project.ProjectRepository;
+import com.cloudforge.backend.risk.RiskAssessmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,9 @@ class DeploymentServiceTest {
 
     @Mock
     private ProjectRepository projects;
+
+    @Mock
+    private RiskAssessmentService riskAssessments;
 
     @InjectMocks
     private DeploymentService service;

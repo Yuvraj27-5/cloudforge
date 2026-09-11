@@ -1,6 +1,9 @@
 package com.cloudforge.backend.common.exception;
 
 import com.cloudforge.backend.deployment.InvalidStatusTransitionException;
+import com.cloudforge.backend.risk.DeploymentNotApprovedException;
+import com.cloudforge.backend.risk.MetricsIncompleteException;
+import com.cloudforge.backend.risk.MetricsMissingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -43,6 +46,25 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setType(URI.create(ERROR_BASE + "invalid-transition"));
         problem.setTitle("Invalid status transition");
+        return problem;
+    }
+
+    /** 409: the deployment exists and the request is valid, but policy forbids it. */
+    @ExceptionHandler(DeploymentNotApprovedException.class)
+    ProblemDetail handleNotApproved(DeploymentNotApprovedException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problem.setType(URI.create(ERROR_BASE + "not-approved"));
+        problem.setTitle("Deployment not approved");
+        return problem;
+    }
+
+    /** 422: well-formed request, but there is nothing measured to score. */
+    @ExceptionHandler({MetricsMissingException.class, MetricsIncompleteException.class})
+    ProblemDetail handleMetrics(RuntimeException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problem.setType(URI.create(ERROR_BASE + "metrics-unavailable"));
+        problem.setTitle("Cannot score this deployment");
         return problem;
     }
 

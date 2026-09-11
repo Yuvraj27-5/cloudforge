@@ -14,7 +14,7 @@ criterion.
 | 5 ✅ | Docker | Sample app runs in a container, tagged by commit SHA | `sample-app`, workflows |
 | 6 ✅ | Security and code analysis | Trivy and static analysis run in CI; metrics stored | workflows, `backend/deployment` |
 | 7 ✅ | ML risk engine | `POST /predict-risk` returns a scored, explained result | `ml-service`, `backend/risk` |
-| 8 | Decision engine | LOW approves, MEDIUM gates, HIGH blocks; every decision persisted | `backend/risk`, `backend/deployment` |
+| 8 ✅ | Decision engine | LOW approves, MEDIUM gates, HIGH blocks; every decision persisted | `backend/risk`, `backend/deployment` |
 | 9 | Local Kubernetes | Sample app deployed to kind; pods, service, probes verified | `infrastructure/kubernetes` |
 | 10 | Monitoring | Prometheus scrapes metrics; Grafana dashboards render | `monitoring` |
 | 11 | Automatic rollback | A deliberately failing deployment rolls back on its own and records why | `backend/cloud`, workflows |

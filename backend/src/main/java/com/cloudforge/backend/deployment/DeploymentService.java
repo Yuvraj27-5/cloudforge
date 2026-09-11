@@ -8,6 +8,7 @@ import com.cloudforge.backend.deployment.dto.RecordMetricsRequest;
 import com.cloudforge.backend.deployment.dto.UpdateDeploymentStatusRequest;
 import com.cloudforge.backend.project.Project;
 import com.cloudforge.backend.project.ProjectRepository;
+import com.cloudforge.backend.risk.RiskAssessmentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -28,15 +29,18 @@ public class DeploymentService {
     private final DeploymentEventRepository events;
     private final DeploymentMetricsRepository metrics;
     private final ProjectRepository projects;
+    private final RiskAssessmentService riskAssessments;
 
     public DeploymentService(DeploymentRepository deployments,
                              DeploymentEventRepository events,
                              DeploymentMetricsRepository metrics,
-                             ProjectRepository projects) {
+                             ProjectRepository projects,
+                             RiskAssessmentService riskAssessments) {
         this.deployments = deployments;
         this.events = events;
         this.metrics = metrics;
         this.projects = projects;
+        this.riskAssessments = riskAssessments;
     }
 
     public Page<DeploymentResponse> find(UUID projectId, DeploymentStatus status, Pageable pageable) {
@@ -102,7 +106,8 @@ public class DeploymentService {
         return DeploymentDetailResponse.from(
                 deployment,
                 events.findByDeploymentIdOrderByOccurredAtAsc(id),
-                metrics.findByDeploymentId(id).orElse(null));
+                metrics.findByDeploymentId(id).orElse(null),
+                riskAssessments.latestFor(id));
     }
 
     @Transactional
@@ -140,6 +145,11 @@ public class DeploymentService {
         if (!from.canTransitionTo(to)) {
             throw new InvalidStatusTransitionException(from, to);
         }
+
+        // The gate. A deployment cannot start unless it has been assessed and
+        // approved. Enforced here rather than in the controller so every caller —
+        // UI, pipeline, future CLI — passes through it.
+        riskAssessments.requireApprovalToStart(id, to);
 
         deployment.applyStatus(to, Instant.now());
         events.save(DeploymentEvent.statusChanged(deployment, from, to, request.reason(), request.actor()));

@@ -1,3 +1,5 @@
+import type { RiskAssessment } from "./risk"
+
 export const DEPLOYMENT_STATUSES = [
   "PENDING",
   "RUNNING",
@@ -61,6 +63,8 @@ export type DeploymentDetail = {
   allowedTransitions: DeploymentStatus[]
   /** Null until the pipeline reports. Absent is not the same as all-zero. */
   metrics: DeploymentMetrics | null
+  /** Null until assessed. Absence blocks the deployment from starting. */
+  riskAssessment: RiskAssessment | null
 }
 
 export type CreateDeploymentRequest = {
